@@ -6,7 +6,7 @@ print("Counter:", Counter(words))
 
 d = defaultdict(list)
 for w in words:
-d[w[0]].append(w) # bucket by first letter
+    d[w[0]].append(w) # bucket by first letter
 print("defaultdict:", dict(d))
 
 nums = [1,2,3]
