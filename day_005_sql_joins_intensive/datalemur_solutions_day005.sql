@@ -1,6 +1,6 @@
 -- Highest-Grossing Items
 
-WITH summed_spend AS ( -- Step 1: Sum spend by category and product for 2022
+WITH summed_spend AS ( -- created a Common Table Expression (CTE) to hold intermediate results of total spend per product per category
   SELECT 
     category, 
     product, 
