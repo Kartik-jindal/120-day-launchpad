@@ -1,3 +1,5 @@
+-- Day 7 CTEs/Subqueries (Oct 9, 2025)
+
 -- A) Build in steps: order revenue -> top 2 orders per customer
 WITH order_rev AS (
   SELECT
@@ -23,7 +25,6 @@ WHERE rnk <= 2
 ORDER BY customer_id, rnk, order_id;
 
 -- A-alt) Fallback if your SQLite doesn't support window functions:
--- Comment the ranked CTE above and use this query in its place:
 -- SELECT
 --   o1.order_id,
 --   o1.customer_id,
@@ -66,8 +67,7 @@ LEFT JOIN paid p ON p.customer_id = c.customer_id
 WHERE p.customer_id IS NULL
 ORDER BY c.customer_id;
 
--- D) Correlated subquery example: customers with total revenue > 2000
---    (Illustrates scalar subquery vs building a CTE)
+-- D) Correlated subquery: customers with total revenue > 2000
 SELECT
   c.customer_id,
   c.name,
@@ -85,16 +85,3 @@ WHERE (
   WHERE o.customer_id = c.customer_id
 ) > 2000
 ORDER BY total_revenue DESC, c.customer_id;
-
--- Debug helpers (run ad-hoc if needed)
--- SELECT COUNT(*) AS orders FROM orders;
--- SELECT COUNT(*) AS items FROM order_items;
--- WITH order_rev AS (
---   SELECT o.order_id, o.customer_id, SUM(oi.qty*oi.price) AS rev
---   FROM orders o JOIN order_items oi USING(order_id)
---   GROUP BY o.order_id, o.customer_id
--- )
--- SELECT customer_id, COUNT(*) AS orders, SUM(rev) AS rev_sum
--- FROM order_rev
--- GROUP BY customer_id
--- ORDER BY rev_sum DESC;
