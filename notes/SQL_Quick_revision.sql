@@ -405,3 +405,49 @@ SELECT order_id, customer_id, rev
 FROM t
 WHERE rn = 1
 ORDER BY customer_id, order_id;
+
+
+
+- Never fix duplicate explosion with DISTINCT — fix join grain with pre-aggregation.
+- Pre-aggregate before join:
+  WITH child_agg AS (
+    SELECT parent_id, SUM(val) AS sum_val
+    FROM child
+    GROUP BY parent_id
+  )
+  SELECT p.*, ca.sum_val
+  FROM parent p
+  LEFT JOIN child_agg ca USING (parent_id);
+
+- Anti-join (preferred): customers with NO paid orders
+  SELECT c.customer_id, c.name
+  FROM customers c
+  WHERE NOT EXISTS (
+    SELECT 1 FROM orders o
+    WHERE o.customer_id = c.customer_id AND o.status = 'paid'
+  );
+
+- Top-K per group (DENSE_RANK)
+  WITH order_rev AS (
+    SELECT o.order_id, o.customer_id, SUM(oi.qty*oi.price) AS rev
+    FROM orders o JOIN order_items oi USING(order_id)
+    GROUP BY o.order_id, o.customer_id
+  )
+  SELECT *
+  FROM (
+    SELECT order_id, customer_id, rev,
+           DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY rev DESC) AS rnk
+    FROM order_rev
+  )
+  WHERE rnk <= 2;
+
+- Cumulative sum (daily)
+  WITH order_daily AS (
+    SELECT o.customer_id, date(o.created_at) AS dt, SUM(oi.qty*oi.price) AS rev
+    FROM orders o JOIN order_items oi USING(order_id)
+    GROUP BY o.customer_id, date(o.created_at)
+  )
+  SELECT customer_id, dt, rev,
+         SUM(rev) OVER (PARTITION BY customer_id ORDER BY dt
+         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cum_rev
+  FROM order_daily;
