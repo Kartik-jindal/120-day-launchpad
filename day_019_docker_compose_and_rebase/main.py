@@ -3,6 +3,8 @@ import os
 # Import the FastAPI class to create the web application
 from fastapi import FastAPI
 
+#This is main application
+
 # Create a FastAPI app instance that will handle incoming HTTP requests
 app = FastAPI()
 
