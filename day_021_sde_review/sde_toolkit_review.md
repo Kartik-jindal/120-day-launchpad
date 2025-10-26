@@ -70,6 +70,5 @@ A: These three commands represent the core workflow for managing database migrat
 
 3.  **`alembic upgrade head`**
     *   This command applies all available and unapplied migration scripts to the database, bringing its schema fully up-to-date with the latest revision (`head`).
-
     <!-- ================================================================ -->
 
