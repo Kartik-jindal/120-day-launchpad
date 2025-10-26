@@ -1,37 +1,36 @@
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
-from typing import Dict, Any
-import hashlib
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from src.app.db.session import SessionLocal, engine
+# --- Import all our models so create_all sees them ---
+from src.app.models.base import Base
+from src.app.models.user import User
+from src.app.models.org import Org, OrgMember
+from src.app.models.project import Project # <-- NEW IMPORT
+# --- Import all our API routers ---
+from src.app.api import auth as auth_api
+from src.app.api import orgs as orgs_api
+from src.app.api import projects as projects_api # <-- NEW IMPORT
+
+# This simple command creates all tables from all imported models
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="FFaaS")
 
+def get_db():
+    db = SessionLocal(); yield db; db.close()
+
 @app.get("/health")
-def health():
-    return {"ok": True}
+def health(): return {"ok": True}
 
-class EvaluateRequest(BaseModel):
-    userId: str
-    context: Dict[str, Any] = {}
+# This is just a placeholder now, we'll remove it later
+@app.get("/users/{user_id}")
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        return {"email": user.email}
+    return {"error": "User not found"}
 
-def bucket_0_99(user_id: str, flag_key: str) -> int:
-    # Stable bucket in [0..99] per (user, flag)
-    h = hashlib.md5(f"{user_id}:{flag_key}".encode()).hexdigest()
-    return int(h, 16) % 100
-
-@app.post("/evaluate/{flagKey}")
-def evaluate(
-    flagKey: str,
-    body: EvaluateRequest,
-    percent: int = Query(25, ge=0, le=100),  # override with ?percent=0..100
-):
-    b = bucket_0_99(body.userId, flagKey)
-    on = b < percent
-    return {
-        "flagKey": flagKey,
-        "on": on,
-        "matchedRuleId": None,   # placeholder for future rules
-        "cache": False,          # will wire Redis later
-        "bucket": b,             # debug: 0..99
-        "percent": percent,
-        "echo": {"userId": body.userId, "context": body.context},
-    }
+# Include all the "doors" from our different API files
+app.include_router(auth_api.router)
+app.include_router(orgs_api.router)
+app.include_router(projects_api.router) # <-- NEW CONNECTION
